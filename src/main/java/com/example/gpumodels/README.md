@@ -9,31 +9,6 @@ For example: "the Head bone should copy the vanilla head" or "hide the hat".
 The script does not move any vertices itself. It only gives a few simple orders
 (like "this bone follows the vanilla arm"). The GPU does the heavy work.
 
----
-
-## 1. One-time setup
-
-### 1.1 Add the libraries to `build.gradle`
-
-Open `build.gradle`. Inside the `dependencies { }` block there must be these lines.
-(The two Assimp lines you already have. The two Lua lines are new.)
-
-```groovy
-compileOnly "org.lwjgl:lwjgl-assimp:3.3.3"
-additionalRuntimeClasspath("org.lwjgl:lwjgl-assimp:3.3.3") { transitive = false }
-additionalRuntimeClasspath("org.lwjgl:lwjgl-assimp:3.3.3:natives-windows") { transitive = false }
-
-compileOnly "org.luaj:luaj-jse:3.0.1"
-additionalRuntimeClasspath("org.luaj:luaj-jse:3.0.1") { transitive = false }
-```
-
-`mavenCentral()` must be inside the `repositories { }` block.
-Then click **Load Gradle changes**.
-
-### 1.2 Put the Java files in your project
-
-Copy all `.java` files into `src/main/java/com/example/gpumodels/`.
-Replace the old files with the same name.
 
 | File | What it does (short) |
 |---|---|
@@ -70,18 +45,20 @@ gpumodels/
 **Names must match.** The model `goku.fbx` uses the script `goku.lua`
 and the texture `goku.png` (or .jpg, .tga, .bmp).
 
+or use glb file to skip png step
+
 Texture rules, in this order:
 1. A texture inside the model file is used first.
-2. Otherwise a picture named like the model, in `gpu texture/` or next to the model.
+2. Otherwise a picture named like the model, in `gpu texture/` or next to the model. ( you can skip this step if your Model is in GLB Format )
 3. Otherwise the model uses its material colors.
 
 ---
 
 ## 3. Quick start
 
-1. Put `goku.fbx` into `gpumodels/`.
+1. Put `goku.fbx` into `gpumodels/` or goku.glb.
 2. Make a text file `goku.lua` next to it. Start with the example script (`example.lua`).
-3. In the game, type: `/gpumodel localplayer model apply goku.fbx`
+3. In the game, type: `/gpumodel localplayer model apply goku.fbx <-- fbx is a Format`
 4. Press **F5** (third person). Your model is there.
 5. Change the script, save it, and type: `/gpumodel localplayer script reload`
 

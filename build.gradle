@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.148'
     id 'idea'
+    id 'com.gradleup.shadow' version '9.3.1'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -28,6 +29,7 @@ sourceSets.main.resources {
 
 repositories {
     // Add here additional repositories if required by some of the dependencies below.
+    mavenCentral()
 }
 
 base {
@@ -122,6 +124,13 @@ dependencies {
     // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
     // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
     // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    compileOnly "org.luaj:luaj-jse:3.0.1"
+    additionalRuntimeClasspath("org.luaj:luaj-jse:3.0.1") { transitive = false }
+
+    compileOnly "org.lwjgl:lwjgl-assimp:3.3.3"
+    additionalRuntimeClasspath("org.lwjgl:lwjgl-assimp:3.3.3") { transitive = false }
+    additionalRuntimeClasspath("org.lwjgl:lwjgl-assimp:3.3.3:natives-windows") { transitive = false }
+
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
@@ -172,7 +181,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = "file://${project.projectDir}/repo"
         }
     }
 }
@@ -187,4 +196,54 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+// ============================================================================================
+// Packaging: put Assimp (+ its Windows DLL) and LuaJ INSIDE the mod jar.
+// "gradlew build" then makes TWO jars in build/libs:
+//   gpumodels-1.0.0.jar        <- the one to put in the mods folder (big, has everything)
+//   gpumodels-1.0.0-slim.jar   <- only your own code, do not use
+// ============================================================================================
+configurations {
+    shade
+}
+
+dependencies {
+    shade("org.lwjgl:lwjgl-assimp:3.3.3") { transitive = false }
+    shade("org.lwjgl:lwjgl-assimp:3.3.3:natives-windows") { transitive = false }
+    shade("org.luaj:luaj-jse:3.0.1") { transitive = false }
+}
+
+jar {
+    archiveClassifier = 'slim'
+}
+
+shadowJar {
+    archiveClassifier = ''
+    configurations = [project.configurations.shade]
+    // LuaJ gets a private name so it can never clash with another mod's LuaJ (TACZ ships one)
+    relocate 'org.luaj', 'com.example.gpumodels.shaded.luaj'
+    exclude 'module-info.class'
+    exclude 'META-INF/versions/**'
+    exclude 'windows/x86/**'
+    exclude 'windows/arm64/**'
+
+    // After the jar is made, look inside and say clearly whether everything is there.
+    doLast {
+        def names = []
+        new java.util.zip.ZipFile(archiveFile.get().asFile).withCloseable { zf ->
+            Collections.list(zf.entries()).each { names << it.name }
+        }
+        def assimpClass = names.contains('org/lwjgl/assimp/Assimp.class')
+        def dlls = names.findAll { it.endsWith('assimp.dll') }
+        def luaj = names.any { it.startsWith('com/example/gpumodels/shaded/luaj/') }
+        println "[gpumodels] jar check -> Assimp class: ${assimpClass}, assimp.dll: ${dlls}, LuaJ (renamed): ${luaj}"
+        if (!assimpClass || dlls.isEmpty() || !luaj) {
+            throw new GradleException('[gpumodels] something is missing inside the jar, see the line above')
+        }
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn tasks.named('shadowJar')
 }

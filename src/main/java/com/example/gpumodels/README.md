@@ -312,12 +312,3 @@ Only run scripts you trust.
 | Game crashes with `NoClassDefFoundError: org.luaj` | The two Lua lines in `build.gradle` are missing. Add them and click Load Gradle changes. |
 
 ---
-
-## 11. What does not work yet
-
-- Only the **local player** (you) gets the custom model. Other players do not see it.
-- Vanilla armor, held items, elytra and capes are not drawn while a model is applied. (Custom armor comes next.)
-- Arms do not raise for held items, shields or bows yet.
-- Animations switch instantly (no smooth blending yet). Only one animation plays at a time.
-- No head turning while riding.
-- The model uses a fixed light, not Minecraft's light level.
